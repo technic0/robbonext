@@ -1,0 +1,28 @@
+# Build artifacts
+*.nex
+*.o
+*.lis
+*.map
+
+# Build intermediates (robbo.nex itself is kept in the repository)
+robbo
+robbo_*.bin
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
