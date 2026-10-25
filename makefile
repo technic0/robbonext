@@ -15,15 +15,14 @@ CSPECT ?= /Applications/CSpect3_0_2_1
 PYTHON ?= python3
 CONVERT_ASSETS = $(PYTHON) scripts/convert_assets.py
 
-# Source cart, redrawn art and generated files
-CART = art/cart/robbo.p8.png
+# Source art and generated files
 HD_ART = art/hd/tiles_hd.png art/hd/sprites_hd.png art/hd/title.png art/hd/ending.png \
          art/splash/robbo_320x256.sl2 art/splash/robbo_320x256.npl
 ASSETS = res/tiles.bin res/spr_game.bin res/spr_title.bin res/spr_ending.bin \
          res/digits.bin res/title_a.bin res/title_b.bin res/ending_a.bin res/ending_b.bin \
          res/splash_a.bin res/splash_b.bin res/splash.npl \
          res/tm_font.bin \
-         res/ramps.bin res/levels.bin res/sound.bin src/gen_assets.h
+         res/ramps.bin src/gen_assets.h
 
 # Compiler
 ZCC = ZCCCFG=$(Z88DK)/lib/config PATH=$(Z88DK)/bin:$$PATH $(Z88DK)/bin/zcc
@@ -61,9 +60,9 @@ HEADERS = $(wildcard src/*.h)
 all: $(NEX_APP_NAME).nex
 
 #
-# Asset conversion rule - depends on the original cart and the script
+# Asset conversion rule - depends on the art and the script
 #
-$(ASSETS): $(CART) $(HD_ART) scripts/convert_assets.py
+$(ASSETS): $(HD_ART) res/flags.bin scripts/convert_assets.py
 	$(CONVERT_ASSETS)
 
 #
@@ -89,7 +88,7 @@ src/title.o: src/title.c $(HEADERS) src/gen_assets.h
 src/fx.o: src/fx.c $(HEADERS) src/gen_assets.h
 	$(ZCC) $(CFLAGS) $(CFLAGS_PAGE47) -c $< -o $@
 
-src/assets.o: src/assets.asm $(ASSETS) res/font.bin
+src/assets.o: src/assets.asm $(ASSETS) res/font.bin res/levels.bin res/sound.bin
 	$(ZCC) $(CFLAGS) -c $< -o $@
 
 src/blit.o: src/blit.asm

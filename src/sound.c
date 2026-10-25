@@ -2,7 +2,7 @@
 //
 //  RobboNext - sfx and music player on the Next's three AY chips
 //
-//  The sfx and music data are copied byte for byte from the original cart.
+//  The sfx and music data (res/sound.bin) are played as they are stored.
 //  Every waveform becomes an AY square wave except noise, which uses the
 //  AY noise generator. Slides, drops, fades, vibrato and arpeggios are
 //  approximated per video frame.
@@ -18,7 +18,7 @@ extern u8 sound_data[];     // 256 bytes of music patterns, then 68 per sfx
 #define MUSIC           (sound_data)
 #define SFX_DATA(n)     (sound_data + 256 + (u16)(n) * 68)
 #define SFX_COUNT       26
-#define NOTE_SAMPLES    183     // note length unit of the cart at 22050 Hz
+#define NOTE_SAMPLES    183     // note length unit at 22050 Hz
 
 #define CHANNELS        7       // 0-3 music, 4-6 sfx
 #define FIRST_SFX_CHAN  4
@@ -55,7 +55,7 @@ static const u16 periods[64] = {
       66,   62,   59,   55,   52,   49,   47,   44,
 };
 
-// cart volume 0-7 to AY volume 0-15 (the AY scale is logarithmic)
+// sfx volume 0-7 to AY volume 0-15 (the AY scale is logarithmic)
 static const u8 volumes[8] = { 0, 7, 9, 11, 12, 13, 14, 15 };
 
 static u16 samples_per_frame;

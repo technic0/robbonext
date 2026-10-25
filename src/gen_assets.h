@@ -80,7 +80,7 @@ const unsigned char tile_frame_slot[128] = {
       0,  0,  0,  0,  0,  0,  0,109,112,  0,  0,  0,  0,  0,  0,  0,
 };
 
-// sprite flags of the cart
+// tile flags
 const unsigned char tile_flags[128] = {
       0,  9,  6,  9,  8, 12, 10, 10, 13,  0,  0, 13, 14,  0,  2,  2,
      40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 42,  0,124,124,

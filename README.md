@@ -1,10 +1,10 @@
 # RobboNext
 
-A port of the PICO-8 de-make of the game "Robbo" to the **ZX Spectrum Next** computer (including clones like Zx Spectrum N-GO, ZXNext_MISTer, etc.).
+A conversion of **Robbo**, the 1989 Atari 8-bit classic by Janusz Pelc (LK Avalon), to the **ZX Spectrum Next** computer (including clones like ZX Spectrum N-GO, ZXNext_MISTer, etc.).
 
 ## About The Project
 
-> The goal of this project is to create a fully playable version of the cult classic game "Robbo", recreating the logic and feel of the PICO-8 version. The project leverages the advanced hardware capabilities of the ZX Spectrum Next computer, such as the sprite layer and the 256 colour Layer 2, to achieve high performance and smooth animation.
+> The goal of this project is to create a fully playable version of the cult classic game "Robbo", keeping the planets, rules and look & feel of the 1989 Atari original. The project leverages the advanced hardware capabilities of the ZX Spectrum Next computer, such as the sprite layer and the 256 colour Layer 2, to achieve high performance and smooth animation.
 >
 > The project's architecture is heavily inspired by and based on the reference code from the game **[CelesteNext](https://github.com/dcrespo3d/CelesteNext)** by David Crespo.
 
@@ -12,9 +12,9 @@ A port of the PICO-8 de-make of the game "Robbo" to the **ZX Spectrum Next** com
 
 **Complete and playable.**
 
-All of the PICO-8 version is ported:
+The whole game is there:
 
-* all 56 planets, unpacked from the original PICO-8 cartridge,
+* all 56 planets of the Atari original,
 * every object and creature: screws, keys, doors, ammo, bombs and chain explosions, crates and loose crates, magnets, teleports, question marks, guns, rotating and moving guns, lasers, blasters, barriers, bats, creatures and eyes,
 * smooth vertical scrolling, the curtain transitions, the flashing background after the last screw and the blinking capsule,
 * the title screen with the colour-cycling logo, scrolling instructions and title music,
@@ -23,7 +23,7 @@ All of the PICO-8 version is ported:
 * cheat mode,
 * **HD graphics**: every tile and sprite redrawn at 16x16 with 256 colours, shading,
   soft shadows and glowing energy objects, keeping the colours and shapes of the original.
-* **Full 320x256 screen**: 14 rows of the planet are visible at once (10 in PICO-8),
+* **Full 320x256 screen**: 14 rows of the planet are visible at once,
   with a graphical status bar below the board.
 * **Particles**: debris, sparks and smoke from explosions, stars on pickups and teleports.
 * **More animation**: screws glint, laser heads pulse, teleports swirl, capsule lights
@@ -107,11 +107,11 @@ Once the environment is configured, compiling the project is very simple:
     make clean
     ```
 
-5.  To regenerate the assets from the PICO-8 cartridge and the HD art, run:
+5.  To regenerate the converted graphics from the HD art, run:
     ```bash
     make assets
     ```
-    `make` does this by itself when `art/hd/*.png` or the cartridge change.
+    `make` does this by itself when `art/hd/*.png` or `art/splash` change.
 
 ## Project Structure
 
@@ -119,11 +119,9 @@ Once the environment is configured, compiling the project is very simple:
 robbonext/
 ├── art/             # Source graphics (.png)
 │   ├── hd/          # HD graphics: tiles, sprites, title and ending (indexed, editable)
-│   ├── splash/      # opening picture: layer 2 data (.sl2) and palette (.npl)
-│   └── cart/        # The original PICO-8 cartridge (robbo.p8.png)
-├── res/             # Converted binary assets (.bin)
-├── scripts/         # convert_assets.py: cartridge + HD art -> res/*.bin, src/gen_assets.h
-│                    # redraw_hd.py, hd_art.py: generator of the first HD art
+│   └── splash/      # opening picture: layer 2 data (.sl2) and palette (.npl)
+├── res/             # Binary assets: levels, sound, tile flags and the converted graphics
+├── scripts/         # convert_assets.py: HD art -> res/*.bin, src/gen_assets.h
 ├── src/             # All source code files (.c, .h, .asm)
 └── makefile         # The file for automating the build process
 ```
@@ -131,11 +129,11 @@ robbonext/
 | File | Contents |
 | --- | --- |
 | `src/main.c` | Main loop and frame timing |
-| `src/game.c` | Game logic, ported function by function from the PICO-8 code |
+| `src/game.c` | Game logic |
 | `src/render.c` | Game screen: board on layer 2, robbo, curtain, status bar |
 | `src/fx.c` | Particles |
 | `src/title.c` | Title screen and ending |
-| `src/sound.c` | PICO-8 sfx and music player for the AY chips |
+| `src/sound.c` | Sound effects and music player for the AY chips |
 | `src/hw.c` | Next registers, paging, palettes, layer 2, tilemap, sprites, input |
 | `src/blit.asm` | Copies a 16x16 tile into layer 2 |
 | `src/data.c` | Level colours, texts and other tables |
@@ -151,19 +149,17 @@ This step assumes you have CSpect emulator installed on your local machine.
 
 ### Assets
 
-`scripts/convert_assets.py` reads the PICO-8 cartridge directly. The cartridge
-stores its memory in the low bits of the PNG pixels; the script extracts the
-sprite sheet, sprite flags, sound effects and music, and unpacks the 56 levels
-(aPLib compressed in the cart, the same `unapl` routine as the PICO-8 code).
-
-The graphics come from `art/hd/tiles_hd.png` and `art/hd/sprites_hd.png`.
+The 56 levels (`res/levels.bin`, 512 bytes each), the sound effects and music
+(`res/sound.bin`) and the tile flags (`res/flags.bin`) are kept as binary data.
+`scripts/convert_assets.py` converts the graphics in `art/hd/` and `art/splash/`
+into `res/*.bin` and writes the tile and sprite tables in `src/gen_assets.h`.
 
 ### HD graphics
 
 The HD art is stored as indexed PNGs that can be edited in any pixel art
 editor that keeps the palette (Aseprite, GrafX2, Pro Motion...):
 
-* `tiles_hd.png` has the same layout as the PICO-8 sprite sheet: tile `n` is
+* `tiles_hd.png` holds the board tiles: tile `n` is
   at column `n % 16`, row `n / 16`, each 16x16. Below them are the extra
   animation frames (`ANIM` in `convert_assets.py`).
 * `sprites_hd.png` holds robbo, the status bar icons, panel and digits, the
@@ -172,17 +168,12 @@ editor that keeps the palette (Aseprite, GrafX2, Pro Motion...):
 * `title.png` and `ending.png` are the 320x256 pictures of those screens.
 
 A pixel's palette index is **colour * 8 + shade**. Shade 3 is the colour
-itself, 0-2 are darker and 4-7 lighter. Colours 0-15 are the PICO-8 ones;
+itself, 0-2 are darker and 4-7 lighter. Colours 0-15 are the base colours;
 16-31 are extra colours of the HD art (gold, chrome, plasma, fire, ...).
 Index 0 is transparent and never used as a colour. The PNG palette only
 previews the default colours: in the game every level builds the shades of
-its own background, wall and crate colours, just like the colour swaps of
-the PICO-8 version, so one drawing serves all 56 planets.
-
-The first version of the HD art was made with `scripts/redraw_hd.py`: the
-pickups, crates, door, rubble, void, creatures, bats and robbo are drawn by
-hand in `scripts/hd_art.py`, the rest is a shaded Scale2x of the PICO-8
-sprite. Running it again overwrites the PNGs, so edit the PNGs from now on.
+its own background, wall and crate colours, just like the planets of the
+Atari original change colour, so one drawing serves all 56 planets.
 
 ### Screen
 
@@ -205,7 +196,7 @@ patterns when they change.
 
 ### Timing
 
-The PICO-8 game updates 30 times per second. The Next runs one update every
+The game logic updates 30 times per second. The Next runs one update every
 other frame at 60 Hz, or three updates every five frames at 50 Hz. Each update
 frame first draws the previous update's result as soon as the beam has left
 the board, then runs the game logic. The sound player runs every frame.
@@ -229,23 +220,22 @@ The rest of the code and the variables live at `0x8000`-`0xD6xx`. The ROM is
 not used, and interrupts are disabled. Pages are mapped temporarily at
 `0x2000` (and tile graphics at `0x4000`) to draw and to load data.
 
-### Differences from the PICO-8 version
+### Notes on the conversion
 
 * Robbo cannot be killed again once he is dead or leaving in his capsule
-  (in the PICO-8 version two explosions in one frame cost two lives).
+  (two explosions in one frame no longer cost two lives).
 * A barrier no longer tries to remove a creature using stale coordinates
   (it never removed anything in practice).
 * Laser beams and blasts stop at the edge of the map.
 * All waveforms are AY square waves except noise.
 * HD graphics.
-* 14 rows of the planet are visible instead of 10; the camera follows robbo
-  with the same margins as in PICO-8.
+* 14 rows of the planet are visible at once; the camera keeps robbo two rows
+  away from the edges of the screen.
 
 ## Acknowledgements
 
-* **Janusz Pelc (ASF):** For creating the original, unforgettable "Robbo" for the Atari XE/XL computers.
-* **bocianu:** For the PICO-8 "Robbo" de-make, which is the direct inspiration for this port and the source of its graphics, sound and levels.
-* **The PICO-8 Community.**
+* **Janusz Pelc and LK Avalon:** For creating the original, unforgettable "Robbo" for the Atari 8-bit computers (1989).
+* **bocianu:** For bringing the Atari original to PICO-8 with its levels and look & feel intact; his version was the inspiration for this conversion.
 * **David Crespo ([@dcrespo3d](https://github.com/dcrespo3d)):** For creating the fantastic game `CelesteNext` and sharing its code. The architecture of `RobboNext` is largely based on the solutions and modules from that project.
 
 ## License
@@ -256,6 +246,6 @@ all rights to the game belong to their owners.
 
 The code of this project is distributed under the **GNU General Public License v3.0**. See the `LICENSE` file for more details.
 
-The PICO-8 cartridge in `art/cart/` and the assets generated from it (graphics, sound and levels in `res/`) are bocianu's work, published under **CC BY-NC-SA 4.0** on the [Lexaloffle BBS](https://www.lexaloffle.com/bbs/?tid=52076). The HD graphics in `art/hd/` are derived from them and shared under the same licence.
+The levels, sound and tile data in `res/` come from bocianu's version, published under **CC BY-NC-SA 4.0** on the [Lexaloffle BBS](https://www.lexaloffle.com/bbs/?tid=52076). The graphics in `art/hd/` are derived from his and shared under the same licence.
 
 The opening picture in `art/splash/` was generated with Google Gemini.

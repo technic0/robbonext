@@ -2,8 +2,8 @@
 #
 # Asset converter for RobboNext.
 #
-# Reads the original cartridge (art/cart/robbo.p8.png) and the HD art
-# (art/hd/*.png) and produces everything the Next build needs:
+# Reads the HD art (art/hd/*.png, art/splash) and produces the graphics the
+# Next build needs, plus the tables in src/gen_assets.h:
 #
 #   res/tiles.bin                   board tiles and animation frames, 16x16
 #                                   at 8 bits per pixel, column by column
@@ -14,12 +14,17 @@
 #   res/splash_{a,b}.bin, splash.npl the opening picture (art/splash), as is
 #   res/tm_font.bin                 4-bit tilemap patterns of the font
 #   res/ramps.bin                   8 shades of each colour, 9-bit RGB
-#   res/levels.bin                  56 levels x 512 bytes from the cart
-#   res/sound.bin                   music + sfx 0..25 from the cart
-#   src/gen_assets.h                tile tables, sprite flags, sprite ids
+#   src/gen_assets.h                tile tables, tile flags, sprite ids
+#
+# Source data kept as is in res/ (taken from bocianu's version, with the
+# levels of the 1989 original):
+#
+#   res/levels.bin                  56 levels x 512 bytes
+#   res/sound.bin                   music + sfx 0..25
+#   res/flags.bin                   flags of the 128 tiles
 #
 # Pixels are palette indices: colour * 8 + shade (shade 3 is the colour
-# itself). Colours 0-15 are the cart's, 16-31 extra colours of the HD
+# itself). Colours 0-15 are the base ones, 16-31 extra colours of the HD
 # art. Index 0 is transparent in sprites and never used as a colour.
 #
 # Usage: python3 scripts/convert_assets.py
@@ -30,91 +35,8 @@ import sys
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CART = os.path.join(ROOT, "art", "cart", "robbo.p8.png")
 RES = os.path.join(ROOT, "res")
 SRC = os.path.join(ROOT, "src")
-
-# ---------------------------------------------------------------------------
-# cart loading
-
-def load_rom(path):
-    """Return the 32K cart memory hidden in the low bits of a .p8.png."""
-    im = Image.open(path).convert("RGBA")
-    data = bytearray()
-    for r, g, b, a in im.getdata():
-        data.append(((a & 3) << 6) | ((r & 3) << 4) | ((g & 3) << 2) | (b & 3))
-    return bytes(data[:0x8000])
-
-
-def unapl(mem, src):
-    """aPLib depacker, a straight port of unapl() from the cart's code."""
-    out = bytearray()
-    st = {"r": src, "tag": 0, "bits": 0}
-
-    def getbyte():
-        b = mem[st["r"]]
-        st["r"] += 1
-        return b
-
-    def getbit():
-        st["bits"] -= 1
-        if st["bits"] < 0:
-            st["tag"] = getbyte()
-            st["bits"] = 7
-        return (st["tag"] >> st["bits"]) & 1
-
-    def getgamma():
-        result = 1
-        while True:
-            result = (result << 1) + getbit()
-            if getbit() == 0:
-                return result
-
-    r0 = -1
-    lwm = 0
-    out.append(getbyte())
-    while True:
-        if getbit():
-            if getbit():
-                if getbit():
-                    offs = 0
-                    for _ in range(4):
-                        offs = (offs << 1) + getbit()
-                    out.append(out[-offs] if offs else 0)
-                    lwm = 0
-                else:
-                    offs = getbyte()
-                    length = 2 + (offs & 1)
-                    offs >>= 1
-                    if offs == 0:
-                        break
-                    for _ in range(length):
-                        out.append(out[-offs])
-                    r0 = offs
-                    lwm = 1
-            else:
-                offs = getgamma()
-                if lwm == 0 and offs == 2:
-                    offs = r0
-                    length = getgamma()
-                else:
-                    offs -= 3 if lwm == 0 else 2
-                    offs = (offs << 8) + getbyte()
-                    length = getgamma()
-                    if offs >= 32000:
-                        length += 1
-                    if offs >= 1280:
-                        length += 1
-                    if offs < 128:
-                        length += 2
-                    r0 = offs
-                for _ in range(length):
-                    out.append(out[-offs])
-                lwm = 1
-        else:
-            out.append(getbyte())
-            lwm = 0
-    return bytes(out)
 
 # ---------------------------------------------------------------------------
 # colours
@@ -408,7 +330,7 @@ def write_header(path, flags):
     lines += table("tile_slots", slots, "slot of each map tile in the tile graphics")
     lines += table("tile_frames", frames, "animation frames of each tile")
     lines += table("tile_frame_slot", first, "slot of the second frame")
-    lines += table("tile_flags", list(flags), "sprite flags of the cart")
+    lines += table("tile_flags", list(flags), "tile flags")
     lines += ["#else", ""]
     for name in ("tile_slots", "tile_frames", "tile_frame_slot", "tile_flags"):
         lines.append("extern const unsigned char %s[128];" % name)
@@ -419,16 +341,8 @@ def write_header(path, flags):
 # ---------------------------------------------------------------------------
 
 def main():
-    rom = load_rom(CART)
-    os.makedirs(RES, exist_ok=True)
     font = open(os.path.join(RES, "font.bin"), "rb").read()
-
-    levels = unapl(rom, 0x1000)
-    if len(levels) != 56 * 512:
-        sys.exit("unexpected level data size %d" % len(levels))
-
-    # music patterns followed by the sfx the game and the title tune use
-    sound = rom[0x3100:0x3200] + rom[0x3200:0x3200 + 26 * 68]
+    flags = open(os.path.join(RES, "flags.bin"), "rb").read()
 
     sprites = read_indexed(os.path.join(ROOT, "art", "hd", "sprites_hd.png"))
     outputs = {
@@ -441,8 +355,6 @@ def main():
         "ending_b.bin": picture("ending.png")[40960:],
         "tm_font.bin": tm_font(font),
         "ramps.bin": build_ramps(),
-        "levels.bin": levels,
-        "sound.bin": sound,
     }
     # opening picture: already layer 2 data (320x256, column by column)
     splash = open(os.path.join(ROOT, "art", "splash", "robbo_320x256.sl2"), "rb").read()
@@ -458,7 +370,7 @@ def main():
             f.write(data)
         print("res/%-22s %6d bytes" % (name, len(data)))
 
-    write_header(os.path.join(SRC, "gen_assets.h"), rom[0x3000:0x3080])
+    write_header(os.path.join(SRC, "gen_assets.h"), flags)
     print("src/gen_assets.h")
 
 

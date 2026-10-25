@@ -19,7 +19,7 @@ void music_play(u8 pattern);
 void music_stop(void);
 bool music_playing(void);
 
-// sfx numbers of the cart used by the game
+// sfx numbers used by the game (entries in res/sound.bin)
 #define SFX_STEP        0
 #define SFX_LANDING     1
 #define SFX_AMMO        2
