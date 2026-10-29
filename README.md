@@ -247,5 +247,3 @@ all rights to the game belong to their owners.
 The code of this project is distributed under the **GNU General Public License v3.0**. See the `LICENSE` file for more details.
 
 The levels, sound and tile data in `res/` come from bocianu's version, published under **CC BY-NC-SA 4.0** on the [Lexaloffle BBS](https://www.lexaloffle.com/bbs/?tid=52076). The graphics in `art/hd/` are derived from his and shared under the same licence.
-
-The opening picture in `art/splash/` was generated with Google Gemini.
